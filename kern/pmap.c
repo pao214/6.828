@@ -305,20 +305,11 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	if (!page_free_list)
-	{
-		return NULL;
-	}
-
+	if (!page_free_list) return NULL;
 	struct PageInfo* head = page_free_list;
 	page_free_list = head->pp_link;
 	head->pp_link = NULL;
-
-	if (alloc_flags & ALLOC_ZERO)
-	{
-		memset(page2kva(head), 0, PGSIZE);
-	}
-
+	if (alloc_flags&ALLOC_ZERO) memset(page2kva(head), 0, PGSIZE);
 	return head;
 }
 
@@ -374,7 +365,24 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	// Compute base physical address of page table
+	pde_t* pde = &pgdir[PDX(va)];
+	assert(pde);
+	physaddr_t pa = PTE_ADDR(*pde);
+
+	// Page table not already present
+	if (!((*pde)&PTE_P))
+	{
+		if (!create) return NULL;
+		struct PageInfo* pageInfo = page_alloc(ALLOC_ZERO);
+		if (!pageInfo) return NULL;
+		(pageInfo->pp_ref)++;
+		pa = page2pa(pageInfo);
+		*pde = pa | PTE_P | PTE_W | PTE_U;
+	}
+
+	// Offset the base address to find the correct entry
+	return (pte_t*)KADDR(pa)+PTX(va);
 }
 
 //
@@ -392,6 +400,15 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	int n_entries = size/PGSIZE;
+	for (int i = 0; i < n_entries; i++)
+	{
+		pte_t* pte = pgdir_walk(pgdir, (const void*)va, true);
+		assert(pte);
+		*pte = pa | perm | PTE_P;
+		va += PGSIZE;
+		pa += PGSIZE;
+	}
 }
 
 //
@@ -423,6 +440,12 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t* pte = pgdir_walk(pgdir, va, true);
+	if (!pte) return -E_NO_MEM;
+	(pp->pp_ref)++;
+	page_remove(pgdir, va);
+	physaddr_t pa = page2pa(pp);
+	*pte = pa | perm | PTE_P;
 	return 0;
 }
 
@@ -441,7 +464,10 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t* pte = pgdir_walk(pgdir, va, false);
+	if (!pte || !((*pte)&PTE_P)) return NULL;
+	if (pte_store) *pte_store = pte;
+	return pa2page(PTE_ADDR(*pte));
 }
 
 //
@@ -463,6 +489,13 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t* pte;
+	struct PageInfo* pgInfo = page_lookup(pgdir, va, &pte);
+	if (!pgInfo) return;
+	assert(pte);
+	*pte = 0;
+	page_decref(pgInfo);
+	tlb_invalidate(pgdir, va);
 }
 
 //
@@ -737,7 +770,7 @@ check_page(void)
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
-	assert(pp2->pp_ref == 1);
+	assert(pp2->pp_ref == 1);		
 
 	// should be no free memory
 	assert(!page_alloc(0));
