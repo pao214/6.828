@@ -62,6 +62,7 @@ i386_detect_memory(void)
 // --------------------------------------------------------------
 
 static void boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm);
+static void boot_map_region_huge(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm);
 static void check_page_free_list(bool only_low_memory);
 static void check_page_alloc(void);
 static void check_kern_pgdir(void);
@@ -199,7 +200,9 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PGSIZE), 0, PTE_W);
+	// boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PGSIZE), 0, PTE_W);
+	// Challenge
+    boot_map_region_huge(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PTSIZE), 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -412,6 +415,20 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 		*pte = pa | perm | PTE_P;
 		va += PGSIZE;
 		pa += PGSIZE;
+	}
+}
+
+// Challenge
+static void
+boot_map_region_huge(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+{
+	int n_entries = size/PTSIZE;
+	for (int i = 0; i < n_entries; i++)
+	{
+        pde_t* pde = &pgdir[PDX(va)];
+		*pde = pa | perm | PTE_P | PTE_PS;
+		va += PTSIZE;
+		pa += PTSIZE;
 	}
 }
 
@@ -681,7 +698,9 @@ check_kern_pgdir(void)
 
 
 	// check phys mem
-	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
+	// for (i = 0; i < npages * PGSIZE; i += PGSIZE)
+    // Challenge
+	for (i = 0; i < npages * PGSIZE; i += PTSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
 
 	// check kernel stack
@@ -722,6 +741,8 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	pgdir = &pgdir[PDX(va)];
 	if (!(*pgdir & PTE_P))
 		return ~0;
+    // Challenge
+    if (*pgdir & PTE_PS) return PTE_ADDR(*pgdir);
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
