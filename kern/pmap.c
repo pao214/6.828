@@ -573,7 +573,7 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-    if ((uintptr_t)(va+len) > ULIM || (uintptr_t)va > (uintptr_t)(va+len))
+    if ((uintptr_t)va > (uintptr_t)va+len)
     {
         user_mem_check_addr = ULIM;
         return -E_FAULT;
