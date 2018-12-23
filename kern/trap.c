@@ -91,6 +91,7 @@ trap_init(void)
 	void trap_mchk();
 	void trap_simderr();
 	void trap_syscall();
+    // FIXME: Are these exceptions(traps) or interrupts?
     SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_divide, 0)
     SETGATE(idt[T_DEBUG], 1, GD_KT, trap_debug, 0)
     SETGATE(idt[T_NMI], 1, GD_KT, trap_nmi, 0)
