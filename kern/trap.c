@@ -147,18 +147,20 @@ trap_init_percpu(void)
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	ts.ts_esp0 = KSTACKTOP;
-	ts.ts_ss0 = GD_KD;
-	ts.ts_iomb = sizeof(struct Taskstate);
+    struct Taskstate* lts = &(thiscpu->cpu_ts);
+    int lid = thiscpu->cpu_id;
+    lts->ts_esp0 = KSTACKTOP - lid*(KSTKSIZE+KSTKGAP);
+	lts->ts_ss0 = GD_KD;
+	lts->ts_iomb = sizeof(struct Taskstate);
 
 	// Initialize the TSS slot of the gdt.
-	gdt[GD_TSS0 >> 3] = SEG16(STS_T32A, (uint32_t) (&ts),
+	gdt[(GD_TSS0 >> 3) + lid] = SEG16(STS_T32A, (uint32_t)lts,
 					sizeof(struct Taskstate) - 1, 0);
-	gdt[GD_TSS0 >> 3].sd_s = 0;
+	gdt[(GD_TSS0 >> 3) + lid].sd_s = 0;
 
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
-	ltr(GD_TSS0);
+	ltr(GD_TSS0 + (lid << 3));
 
 	// Load the IDT
 	lidt(&idt_pd);
@@ -337,7 +339,8 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if ((tf->tf_cs & 3) == 0) {
-        panic("Page fault in kernel mode\n");
+	    panic("kernel fault va %08x ip %08x\n",
+            fault_va, tf->tf_eip);
     }
 
 	// We've already handled kernel-mode exceptions, so if we get here,

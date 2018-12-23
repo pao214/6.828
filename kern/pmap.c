@@ -220,9 +220,9 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	// boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PGSIZE), 0, PTE_W);
+	boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PGSIZE), 0, PTE_W);
 	// Challenge
-    boot_map_region_huge(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PTSIZE), 0, PTE_W);
+    // boot_map_region_huge(kern_pgdir, KERNBASE, ROUNDUP(-KERNBASE, PTSIZE), 0, PTE_W);
 
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
@@ -478,18 +478,18 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 }
 
 // Challenge
-static void
-boot_map_region_huge(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
-{
-	int n_entries = size/PTSIZE;
-	for (int i = 0; i < n_entries; i++)
-	{
-        pde_t* pde = &pgdir[PDX(va)];
-		*pde = pa | perm | PTE_P | PTE_PS;
-		va += PTSIZE;
-		pa += PTSIZE;
-	}
-}
+// static void
+// boot_map_region_huge(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+// {
+// 	int n_entries = size/PTSIZE;
+// 	for (int i = 0; i < n_entries; i++)
+// 	{
+//         pde_t* pde = &pgdir[PDX(va)];
+// 		*pde = pa | perm | PTE_P | PTE_PS;
+// 		va += PTSIZE;
+// 		pa += PTSIZE;
+// 	}
+// }
 
 //
 // Map the physical page 'pp' at virtual address 'va'.
@@ -865,9 +865,9 @@ check_kern_pgdir(void)
 		assert(check_va2pa(pgdir, UENVS + i) == PADDR(envs) + i);
 
 	// check phys mem
-	// for (i = 0; i < npages * PGSIZE; i += PGSIZE)
+	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
     // Challenge
-	for (i = 0; i < npages * PGSIZE; i += PTSIZE)
+	// for (i = 0; i < npages * PGSIZE; i += PTSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
 
 	// check kernel stack
@@ -917,7 +917,7 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	if (!(*pgdir & PTE_P))
 		return ~0;
     // Challenge
-    if (*pgdir & PTE_PS) return PTE_ADDR(*pgdir);
+    // if (*pgdir & PTE_PS) return PTE_ADDR(*pgdir);
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
 	if (!(p[PTX(va)] & PTE_P))
 		return ~0;
