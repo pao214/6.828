@@ -362,7 +362,7 @@ load_icode(struct Env *e, uint8_t *binary)
         assert((uintptr_t)ph->p_va+ph->p_memsz <= UTOP);
         region_alloc(e, (void*)(ph->p_va), ph->p_memsz);
         memcpy((void*)(ph->p_va), binary+ph->p_offset, ph->p_filesz);
-        memset(binary+(ph->p_offset+ph->p_filesz), 0, (ph->p_memsz-ph->p_filesz));
+        memset((void*)(ph->p_va)+ph->p_filesz, 0, (ph->p_memsz-ph->p_filesz));
     }
     lcr3(PADDR(kern_pgdir));
     (e->env_tf).tf_eip = (uintptr_t)(elfHdr->e_entry);

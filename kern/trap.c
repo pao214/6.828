@@ -83,6 +83,7 @@ trap_init(void)
 	void trap_align();
 	void trap_mchk();
 	void trap_simderr();
+	void trap_syscall();
     SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_divide, 0)
     SETGATE(idt[T_DEBUG], 1, GD_KT, trap_debug, 0)
     SETGATE(idt[T_NMI], 1, GD_KT, trap_nmi, 0)
@@ -101,6 +102,7 @@ trap_init(void)
     SETGATE(idt[T_ALIGN], 1, GD_KT, trap_align, 0)
     SETGATE(idt[T_MCHK], 1, GD_KT, trap_mchk, 0)
     SETGATE(idt[T_SIMDERR], 1, GD_KT, trap_simderr, 0)
+    SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_syscall, 3)
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -191,6 +193,14 @@ trap_dispatch(struct Trapframe *tf)
         case T_PGFLT:
         {
             page_fault_handler(tf);
+            return;
+        }
+        case T_SYSCALL:
+        {
+            struct PushRegs* pushRegs = &(tf->tf_regs);
+            pushRegs->reg_eax = syscall(pushRegs->reg_eax, pushRegs->reg_edx,
+                pushRegs->reg_ecx, pushRegs->reg_ebx, pushRegs->reg_edi,
+                pushRegs->reg_esi);
             return;
         }
         default:
