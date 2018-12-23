@@ -326,6 +326,8 @@ page_init(void)
 
 	// Mark [PGSIZE, npages_basemem*PGSIZE) as free
 	for (; i < npages_basemem; i++) {
+        if (i == MPENTRY_PADDR/PGSIZE)
+            continue;
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -616,15 +618,12 @@ mmio_map_region(physaddr_t pa, size_t size)
 	//
 	// Your code here:
 	// panic("mmio_map_region not implemented");
-    uintptr_t lbase = base;
-    uintptr_t lend = PGROUNDUP(lbase+size, PGSIZE);
-    if (lend > MMIOLIM)
+    size_t round_size = ROUNDUP(size, PGSIZE);
+    if (base+round_size > MMIOLIM)
         panic("Exceeded memory IO limit\n");
-    // FIXME: pa is already at page boundary
-    uintptr_t lpa = ROUNDDOWN(pa, PGSIZE);
-    for (; lbase < lend; lbase += PGSIZE, lpa += PGSIZE)
-        boot_map_region(kern_pgdir, lbase, lpa, PTE_PCD|PTE_PWT|PTE_W);
-    return base;
+    boot_map_region(kern_pgdir, base, round_size, pa, PTE_PCD|PTE_PWT|PTE_W);
+    base += round_size;
+    return (void*)base-round_size;
 }
 
 static uintptr_t user_mem_check_addr;
