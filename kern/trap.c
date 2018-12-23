@@ -180,6 +180,19 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+    // NOTE: Can either be switch case or function dispatch
+    switch(tf->tf_trapno)
+    {
+        case T_PGFLT:
+        {
+            page_fault_handler(tf);
+            return;
+        }
+        default:
+        {
+            break;
+        }
+    }
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
