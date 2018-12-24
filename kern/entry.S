@@ -45,9 +45,9 @@ entry:
 	movw	$0x1234,0x472			# warm boot
 
 	# Challenge: Turn on page size extension for 4Mbyte pages
-	movl    %cr4, %eax
-	orl     $(CR4_PSE), %eax
-	movl    %eax, %cr4
+	# movl    %cr4, %eax
+	# orl     $(CR4_PSE), %eax
+	# movl    %eax, %cr4
 
 	# We haven't set up virtual memory yet, so we're running from
 	# the physical address the boot loader loaded the kernel at: 1MB
