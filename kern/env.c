@@ -541,6 +541,7 @@ env_run(struct Env *e)
     curenv->env_status = ENV_RUNNING;
     (curenv->env_runs)++;
     lcr3(PADDR(curenv->env_pgdir));
+    assert((curenv->env_tf.tf_eflags)&FL_IF); // Always enable interrupts
     env_pop_tf(&(curenv->env_tf));
 	// panic("env_run not yet implemented");
 }
