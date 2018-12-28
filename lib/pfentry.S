@@ -74,19 +74,19 @@ _pgfault_upcall:
 	// Restore the trap-time registers.  After you do this, you
 	// can no longer modify any general-purpose registers.
 	// LAB 4: Your code here.
-	add $8, %esp
+	add $8, %esp // skip fault_va, utf_err
 	popal
 
 	// Restore eflags from the stack.  After you do this, you can
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 4: Your code here.
-	add $4, %esp
+	add $4, %esp // skip utf_eip
 	popfl
 
 	// Switch back to the adjusted trap-time stack.
 	// LAB 4: Your code here.
-	movl (%esp), %esp
+	movl (%esp), %esp // stack now points to the return address
 
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.

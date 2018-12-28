@@ -388,7 +388,7 @@ page_fault_handler(struct Trapframe *tf)
         print_trapframe(tf);
         env_destroy(curenv);
     }
-    user_mem_assert(curenv, (void*)UXSTACKTOP-PGSIZE, PGSIZE, PTE_W);
+    user_mem_assert(curenv, (void*)UXSTACKTOP-1, 1, PTE_W);
     uintptr_t lsp = tf->tf_esp;
     struct UTrapframe* lutf;
     // FIXME: Is stack pointer allowed to be above UXSTACKTOP?
@@ -396,7 +396,7 @@ page_fault_handler(struct Trapframe *tf)
         lutf = (struct UTrapframe*)UXSTACKTOP-1;
     else
         lutf = (struct UTrapframe*)(lsp-sizeof(uintptr_t))-1;
-    if ((uintptr_t)lutf < UXSTACKTOP)
+    if ((uintptr_t)lutf < UXSTACKTOP-PGSIZE)
     {
         // Destroy the environment that caused the fault.
         cprintf("[%08x] user fault va %08x ip %08x\n",
@@ -407,7 +407,7 @@ page_fault_handler(struct Trapframe *tf)
 
     // Push user trap frame on stack
     lutf->utf_fault_va = fault_va;
-    lutf->utf_err = 0; // FIXME: What is this for?
+    lutf->utf_err = tf->tf_err;
     lutf->utf_regs = tf->tf_regs;
     lutf->utf_eip = tf->tf_eip;
     lutf->utf_eflags = tf->tf_eflags;
