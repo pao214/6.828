@@ -48,9 +48,48 @@
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
+// Traps
+TRAPHANDLER_NOEC(trap_divide, T_DIVIDE)
+TRAPHANDLER_NOEC(trap_debug, T_DEBUG)
+TRAPHANDLER_NOEC(trap_nmi, T_NMI)
+TRAPHANDLER_NOEC(trap_brkpt, T_BRKPT)
+TRAPHANDLER_NOEC(trap_oflow, T_OFLOW)
+TRAPHANDLER_NOEC(trap_bound, T_BOUND)
+TRAPHANDLER_NOEC(trap_illop, T_ILLOP)
+TRAPHANDLER_NOEC(trap_device, T_DEVICE)
+TRAPHANDLER(trap_dblflt, T_DBLFLT)
+TRAPHANDLER(trap_tss, T_TSS)
+TRAPHANDLER(trap_segnp, T_SEGNP)
+TRAPHANDLER(trap_stack, T_STACK)
+TRAPHANDLER(trap_gpflt, T_GPFLT)
+TRAPHANDLER(trap_pgflt, T_PGFLT)
+TRAPHANDLER_NOEC(trap_fperr, T_FPERR)
+TRAPHANDLER(trap_align, T_ALIGN)
+TRAPHANDLER_NOEC(trap_mchk, T_MCHK)
+TRAPHANDLER_NOEC(trap_simderr, T_SIMDERR)
 
+// Interrupts
+TRAPHANDLER_NOEC(int_timer, (IRQ_OFFSET+IRQ_TIMER))
+TRAPHANDLER_NOEC(int_kbd, (IRQ_OFFSET+IRQ_KBD))
+TRAPHANDLER_NOEC(int_serial, (IRQ_OFFSET+IRQ_SERIAL))
+TRAPHANDLER_NOEC(int_spurious, (IRQ_OFFSET+IRQ_SPURIOUS))
+TRAPHANDLER_NOEC(int_ide, (IRQ_OFFSET+IRQ_IDE))
+
+// System call
+TRAPHANDLER_NOEC(trap_syscall, T_SYSCALL)
+
+// Interrupt error
+TRAPHANDLER_NOEC(int_error, (IRQ_OFFSET+IRQ_ERROR))
 
 /*
  * Lab 3: Your code here for _alltraps
  */
-
+_alltraps:
+	pushl %ds
+	pushl %es
+	pushal
+	movw $(GD_KD),%ax
+	movw %ax,%ds
+	movw %ax,%es
+	pushl %esp
+	call trap
