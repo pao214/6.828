@@ -327,6 +327,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	// LAB 4: Your code here.
 	// panic("sys_ipc_try_send not implemented");
     
+    // FIXME: Check user permissions as well?
     // Validate
     struct Env *env;
     int rc;
