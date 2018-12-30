@@ -69,7 +69,7 @@ pgfault(struct UTrapframe *utf)
 static int
 duppage(envid_t envid, unsigned pn)
 {
-	int rc;
+	int r;
 
 	// LAB 4: Your code here.
 	// panic("duppage not implemented");
@@ -77,17 +77,29 @@ duppage(envid_t envid, unsigned pn)
     pte_t pte = uvpt[pn];
     assert(pte&PTE_P);
 
+    int perm;
+    // Copy on write
+    perm = PTE_COW|PTE_U|PTE_P;
+
+    // Share the page
+    if (pte&PTE_SHARE)
+    {
+        if (!envid || envid == thisenv->env_id)
+            return 0;
+        perm = pte&PTE_SYSCALL;
+    }
+
     // FIXME: COW on read only pages?
+    // Read only page
     if (!(pte&PTE_W) && !(pte&PTE_COW))
     {
         if (!envid || envid == thisenv->env_id)
             return 0;
-        rc = sys_page_map(0, (void*)((uintptr_t)pn*PGSIZE), envid, (void*)((uintptr_t)pn*PGSIZE), PTE_U|PTE_P);
-        return rc;
+        perm = PTE_U|PTE_P;
     }
 
-    rc = sys_page_map(0, (void*)((uintptr_t)pn*PGSIZE), envid, (void*)((uintptr_t)pn*PGSIZE), PTE_COW|PTE_U|PTE_P);
-	return rc;
+    r = sys_page_map(0, (void*)((uintptr_t)pn*PGSIZE), envid, (void*)((uintptr_t)pn*PGSIZE), perm);
+	return r;
 }
 
 //

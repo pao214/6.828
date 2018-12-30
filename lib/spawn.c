@@ -302,6 +302,23 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+    // FIXME: No note of pde entries for user-space bits
+    int r;
+    for (int ptn = 0; ptn <= USTACKTOP/PTSIZE; ptn++)
+    {
+        pde_t pde = uvpd[ptn];
+        if (!(pde&PTE_P))
+            continue;
+        for (int pn = (ptn<<10); (pn < ((ptn+1)<<10)) && (pn < USTACKTOP/PGSIZE); pn++)
+        {
+            pte_t pte = uvpt[pn];
+            if (!(pte&PTE_P) || !(pte&PTE_SHARE))
+                continue;
+            r = sys_page_map(0, (void*)((uintptr_t)pn*PGSIZE), child, (void*)((uintptr_t)pn*PGSIZE), pte&PTE_SYSCALL);
+            if (r < 0)
+                return r;
+        }
+    }
 	return 0;
 }
 
