@@ -221,9 +221,9 @@ serve_read(envid_t envid, union Fsipc *ipc)
 		return r;
     if (o->o_mode&O_WRONLY)
         return -E_INVAL;
-    if (req->req_n > PGSIZE)
-        return -E_INVAL;
-    r = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset);
+    int req_n;
+    req_n = PGSIZE > req->req_n ? req->req_n : PGSIZE;
+    r = file_read(o->o_file, ret->ret_buf, req_n, o->o_fd->fd_offset);
     if (r < 0)
         return r;
     o->o_fd->fd_offset += r;
@@ -250,9 +250,11 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		return r;
     if (!(o->o_mode&O_ACCMODE))
         return -E_INVAL;
-    if (req->req_n > PGSIZE-sizeof(int)-sizeof(size_t))
-        return -E_INVAL;
-    r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset);
+    int req_n;
+    req_n = PGSIZE-sizeof(int)-sizeof(size_t);
+    if (req_n > req->req_n)
+        req_n = req->req_n;
+    r = file_write(o->o_file, req->req_buf, req_n, o->o_fd->fd_offset);
     if (r < 0)
         return r;
     o->o_fd->fd_offset += r;

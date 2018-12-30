@@ -55,8 +55,16 @@ again:
 			// then close the original 'fd'.
 
 			// LAB 5: Your code here.
-			panic("< redirection not implemented");
-			break;
+			// panic("< redirection not implemented");
+			close(0);
+            fd = open(t, O_RDONLY);
+            if (fd < 0)
+            {
+                cprintf("open %s for read: %e\n", t, fd);
+                exit();
+            }
+            assert(!fd);
+            break;
 
 		case '>':	// Output redirection
 			// Grab the filename from the argument list

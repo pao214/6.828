@@ -145,7 +145,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
     user_mem_assert(env, tf, sizeof(struct Trapframe), 0); // FIXME: write perm?
     tf->tf_cs |= 3;
     tf->tf_eflags |= FL_IF;
-    tf->tf_eflags |= FL_IOPL_0;
+    tf->tf_eflags &= ~FL_IOPL_3;
     env->env_tf = *tf;
     return 0;
 }
