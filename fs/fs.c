@@ -206,7 +206,7 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
     
     // Allocate block
     assert(pdiskbno);
-    if (!(*pdiskbno))
+    if (!(*pdiskbno) || block_is_free(*pdiskbno))
     {
         r = alloc_block();
         if (r < 0)
