@@ -625,6 +625,7 @@ mmio_map_region(physaddr_t pa, size_t size)
 	//
 	// Your code here:
 	// panic("mmio_map_region not implemented");
+    assert(!PGOFF(pa));
     size_t round_size = ROUNDUP(size, PGSIZE);
     if (base+round_size > MMIOLIM)
         panic("Exceeded memory IO limit\n");
