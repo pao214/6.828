@@ -59,24 +59,34 @@ struct e1000_tx_cmd_t
     unsigned ide    : 1;
 };
 
+// Descriptor status
+struct e1000_tx_stat_t
+{
+    unsigned dd     : 1;
+    unsigned ec     : 1;
+    unsigned lc     : 1;
+    unsigned rsv    : 1;
+    unsigned rsv2   : 4;
+};
+
 // Transmit descriptor
 struct e1000_tx_desc_t
 {
-    uint64_t                addr;
+    uint32_t                addr;
+    uint32_t                high;
     uint16_t                length;
     uint8_t                 cso;
     struct e1000_tx_cmd_t   cmd;
-    uint8_t                 status;
+    struct e1000_tx_stat_t  status;
     uint8_t                 css;
     uint16_t                special;
 };
 
 #pragma pack(pop)
 
-extern volatile uint8_t *netaddr;
-
 int attach(struct pci_func *pcif);
-void tx_init();
 void validate();
+void tx_init();
+int tx_try_send(const char *pkt, size_t len);
 
 #endif  // SOL >= 6

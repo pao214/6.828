@@ -122,3 +122,9 @@ sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
+
+int
+sys_net_try_send(const char *pkt, size_t len)
+{
+    return syscall(SYS_net_try_send, 0, (uint32_t)pkt, (uint32_t)len, 0, 0, 0);
+}

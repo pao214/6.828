@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -89,6 +90,7 @@ sys_exofork(void)
     if (rc < 0)
         return rc;
     env->env_status = ENV_NOT_RUNNABLE;
+    env->env_type = curenv->env_type; // Support net env
     memcpy(&(env->env_tf), &(curenv->env_tf), sizeof(struct Trapframe));
     (env->env_tf).tf_regs.reg_eax = 0;
     return env->env_id;
@@ -414,6 +416,23 @@ sys_time_msec(void)
     return time_msec();
 }
 
+// Return
+//  -E_FAULT if the address range is not readable by user
+//  -E_INVAL if the packet is too large
+//  -E_RETRY if the transmit buffer is full
+//  0 on SUCCESS (packet may still be dropped)
+static int
+sys_net_try_send(const char *pkt, size_t len)
+{
+    // Wrapper over tx_try_send
+    // FIXME: Allow only ENV_TYPE_NS
+    int r;
+    r = user_mem_check(curenv, pkt, len, 0);
+    if (r < 0)
+        return r;
+    return tx_try_send(pkt, len);
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -462,6 +481,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         return sys_ipc_recv((void*)a1);
     case SYS_time_msec:
         return sys_time_msec();
+    case SYS_net_try_send:
+        return sys_net_try_send((const char *)a1, (size_t)a2);
 	default:
 		return -E_INVAL;
 	}
