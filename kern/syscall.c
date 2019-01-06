@@ -4,6 +4,7 @@
 #include <inc/error.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/ns.h>
 
 #include <kern/env.h>
 #include <kern/pmap.h>
@@ -422,15 +423,21 @@ sys_time_msec(void)
 //  -E_RETRY if the transmit buffer is full
 //  0 on SUCCESS (packet may still be dropped)
 static int
-sys_net_try_send(const char *pkt, size_t len)
+sys_net_try_send(const struct jif_pkt *pkt)
 {
     // Wrapper over tx_try_send
     // FIXME: Allow only ENV_TYPE_NS
     int r;
-    r = user_mem_check(curenv, pkt, len, 0);
+    r = user_mem_check(curenv, pkt, sizeof(int)+pkt->jp_len, 0);
     if (r < 0)
         return r;
-    return tx_try_send(pkt, len);
+    return tx_try_send(pkt);
+}
+
+static int
+sys_net_try_recv(struct jif_pkt *pkt)
+{
+    return rx_try_recv(pkt);
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -482,7 +489,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
     case SYS_time_msec:
         return sys_time_msec();
     case SYS_net_try_send:
-        return sys_net_try_send((const char *)a1, (size_t)a2);
+        return sys_net_try_send((const struct jif_pkt *)a1);
+    case SYS_net_try_recv:
+        return sys_net_try_recv((struct jif_pkt *)a1);
 	default:
 		return -E_INVAL;
 	}

@@ -40,18 +40,10 @@ output(envid_t ns_envid)
 			continue;
 		}
 
-        // Drop larger packets
-        // FIXME: Better yet fragment the packet
-        struct jif_pkt *pkt = &nsipcbuf.pkt; 
-        if ((uint32_t)pkt->jp_len > E1000_MAX_PKT_LEN)
-        {
-            panic("Dropped packet\n");
-            continue;
-        }
-
         // Send a system call to the driver
+        struct jif_pkt *pkt = &nsipcbuf.pkt; 
         do {
-            r = sys_net_try_send(pkt->jp_data, (size_t)pkt->jp_len);
+            r = sys_net_try_send(pkt);
             sys_yield();
         } while (r == E_RETRY);
 

@@ -124,7 +124,13 @@ sys_time_msec(void)
 }
 
 int
-sys_net_try_send(const char *pkt, size_t len)
+sys_net_try_send(const struct jif_pkt *pkt)
 {
-    return syscall(SYS_net_try_send, 0, (uint32_t)pkt, (uint32_t)len, 0, 0, 0);
+    return syscall(SYS_net_try_send, 0, (uint32_t)pkt, 0, 0, 0, 0);
+}
+
+int
+sys_net_try_recv(struct jif_pkt *pkt)
+{
+    return syscall(SYS_net_try_recv, 0, (uint32_t)pkt, 0, 0, 0, 0);
 }
