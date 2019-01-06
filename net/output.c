@@ -45,7 +45,7 @@ output(envid_t ns_envid)
         do {
             r = sys_net_try_send(pkt);
             sys_yield();
-        } while (r == E_RETRY);
+        } while (r == -E_RETRY);
 
         if (r < 0)
             panic("sys_net_try_send: %e\n", r);

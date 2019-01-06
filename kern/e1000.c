@@ -99,14 +99,6 @@ void rx_init()
     rx_tail = (uint16_t *)(netaddr+E1000_RDT);
     assert(*rx_tail == 0);
 
-    // Initialzie rctl
-    struct e1000_rctl_t rctl;
-    memset(&rctl, 0, sizeof(rctl));
-    rctl.en = 1;
-    // rctl.bsize, rctl.bsex set to zero
-    rctl.secrc = 1;
-    *(struct e1000_rctl_t *)(netaddr+E1000_RCTL) = rctl;
-
     // Initialize desc
     for (int i = 0; i < E1000_RX_DESC_LEN; i++)
     {
@@ -117,6 +109,14 @@ void rx_init()
 
     // Init tail
     *rx_tail = E1000_RX_DESC_LEN-1;
+
+    // Initialzie rctl
+    struct e1000_rctl_t rctl;
+    memset(&rctl, 0, sizeof(rctl));
+    rctl.en = 1;
+    // rctl.bsize, rctl.bsex set to zero
+    rctl.secrc = 1;
+    *(struct e1000_rctl_t *)(netaddr+E1000_RCTL) = rctl;
 }
 
 // Return
@@ -131,10 +131,15 @@ int tx_try_send(const struct jif_pkt *pkt)
         return -E_INVAL;
     // Explicitly read since may not be optimized
     uint16_t tail = *tx_tail;
-    // NOTE: Do not check the immediate descriptor
-    if (!tx_descs[(tail+1)%E1000_TX_DESC_LEN].status.dd)
+
+    // NOTE: Do not check immediate descriptor
+    struct e1000_tx_desc_t *tx_desc;
+    tx_desc = &tx_descs[(tail+1)%E1000_TX_DESC_LEN];
+    if (!tx_desc->status.dd)
         return -E_RETRY;
-    struct e1000_tx_desc_t *tx_desc = &tx_descs[tail%E1000_TX_DESC_LEN];
+
+    // Init next descriptor to transmit
+    tx_desc = &tx_descs[tail%E1000_TX_DESC_LEN];
     memset(tx_desc, 0, sizeof(*tx_desc));
     tx_desc->addr = (uint32_t)(PADDR(&tx_buf[tail*E1000_MAX_PKT_LEN]));
     memcpy((void*)KADDR(tx_desc->addr), pkt->jp_data, pkt->jp_len);
@@ -147,7 +152,31 @@ int tx_try_send(const struct jif_pkt *pkt)
     return 0;
 }
 
+// Return
+//  -E_RETRY if no desc is free for reading
+//  0 on SUCCESS
+// Panics if the length is greater than maximum allowed
 int rx_try_recv(struct jif_pkt *pkt)
 {
- return -E_RETRY;
+    // Check desc available
+    uint16_t tail = *rx_tail;
+    uint16_t next = (tail+1)%E1000_RX_DESC_LEN;
+    struct e1000_rx_desc_t *rx_desc;
+    rx_desc = &rx_descs[next];
+    if (!rx_desc->status.dd)
+        return -E_RETRY;
+
+    // Read from next descriptor
+    assert(rx_desc->status.eop);
+    assert(rx_desc->length <= E1000_RX_BSIZE);
+    assert(rx_desc->status.eop);
+    memcpy(pkt->jp_data, &rx_buf[next*E1000_RX_BSIZE], rx_desc->length);
+    pkt->jp_len = rx_desc->length;
+
+    // Release the descriptor
+    // rx_desc = &rx_desc[tail];
+    // memset(rx_desc, 0, sizeof(*rx_desc));
+    // rx_desc->addr = (uint32_t)PADDR(&rx_buf[tail*E1000_RX_BSIZE]);
+    *rx_tail = next;
+    return 0;
 }

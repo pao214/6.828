@@ -426,17 +426,30 @@ static int
 sys_net_try_send(const struct jif_pkt *pkt)
 {
     // Wrapper over tx_try_send
-    // FIXME: Allow only ENV_TYPE_NS
+    // FIXME: Only allow ENV_TYPE_NS
     int r;
-    r = user_mem_check(curenv, pkt, sizeof(int)+pkt->jp_len, 0);
+    r = user_mem_check(curenv, pkt, PGSIZE, 0);
     if (r < 0)
         return r;
     return tx_try_send(pkt);
 }
 
+// Return
+//  -E_BAD_ENV if call is made from another env
+//  -E_FAULT if address range is not writable by user
+//  -E_RETRY if receive buffer is empty
+//  0 on SUCCESS
 static int
 sys_net_try_recv(struct jif_pkt *pkt)
 {
+    int r;
+    // struct Env *env;
+    // r = envid2env(curenv->env_parent_id, &env, false);
+    // if (r < 0 || env->env_type != ENV_TYPE_NS)
+    //     return -E_BAD_ENV;
+    r = user_mem_check(curenv, pkt, PGSIZE, PTE_W);
+    if (r < 0)
+        return r;
     return rx_try_recv(pkt);
 }
 

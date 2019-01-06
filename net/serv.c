@@ -232,6 +232,8 @@ serve_thread(uint32_t a) {
 		break;
 	case NSREQ_INPUT:
 		jif_input(&nif, (void *)&req->pkt);
+        // FIXME: Is there a better way?
+        // req->pkt.jp_len = 0;
 		r = 0;
 		break;
 	default:
